@@ -14,6 +14,7 @@ import Daftar from "./pages/Daftar";
 import Bantuan from "./pages/Bantuan";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import CreateDemoAccounts from "./pages/CreateDemoAccounts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/daftar" element={<Daftar />} />
             <Route path="/bantuan" element={<Bantuan />} />
+            <Route path="/setup-demo" element={<CreateDemoAccounts />} />
             <Route 
               path="/dashboard" 
               element={
