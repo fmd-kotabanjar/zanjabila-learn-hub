@@ -1,13 +1,23 @@
 
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, User, Settings } from 'lucide-react';
+import { Menu, User, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulasi login state
+  const [isAdmin, setIsAdmin] = useState(false); // Simulasi admin state
 
-  const navItems = [
+  const publicNavItems = [
+    { name: 'Home', path: '/' },
+    { name: 'Program', path: '/program' },
+    { name: 'Artikel', path: '/artikel' },
+    { name: 'E-book', path: '/ebook' },
+    { name: 'Bantuan', path: '/bantuan' }
+  ];
+
+  const userNavItems = [
     { name: 'Home', path: '/' },
     { name: 'Program', path: '/program' },
     { name: 'Artikel', path: '/artikel' },
@@ -15,6 +25,33 @@ const Header = () => {
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Bantuan', path: '/bantuan' }
   ];
+
+  const adminNavItems = [
+    { name: 'Home', path: '/' },
+    { name: 'Program', path: '/program' },
+    { name: 'Artikel', path: '/artikel' },
+    { name: 'E-book', path: '/ebook' },
+    { name: 'Dashboard', path: '/dashboard' },
+    { name: 'Admin Panel', path: '/admin' },
+    { name: 'Bantuan', path: '/bantuan' }
+  ];
+
+  const getNavItems = () => {
+    if (isAdmin) return adminNavItems;
+    if (isLoggedIn) return userNavItems;
+    return publicNavItems;
+  };
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    // Simulasi: set admin berdasarkan email atau role
+    // setIsAdmin(true); // Uncomment untuk testing admin
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setIsAdmin(false);
+  };
 
   return (
     <header className="bg-white/80 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50 shadow-lg">
@@ -30,7 +67,7 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
+            {getNavItems().map((item) => (
               <NavLink
                 key={item.name}
                 to={item.path}
@@ -49,23 +86,39 @@ const Header = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <NavLink to="/admin">
-              <Button variant="ghost" className="text-purple-600 hover:bg-purple-50">
-                <Settings className="w-4 h-4 mr-2" />
-                Admin
-              </Button>
-            </NavLink>
-            <NavLink to="/login">
-              <Button variant="ghost" className="text-zanjabila-blue-600 hover:bg-zanjabila-blue-50">
-                <User className="w-4 h-4 mr-2" />
-                Masuk
-              </Button>
-            </NavLink>
-            <NavLink to="/daftar">
-              <Button className="bg-gradient-primary hover:opacity-90 text-white backdrop-blur-lg">
-                Daftar
-              </Button>
-            </NavLink>
+            {!isLoggedIn ? (
+              <>
+                <NavLink to="/login">
+                  <Button 
+                    variant="ghost" 
+                    className="text-zanjabila-blue-600 hover:bg-zanjabila-blue-50"
+                    onClick={handleLogin}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Masuk
+                  </Button>
+                </NavLink>
+                <NavLink to="/daftar">
+                  <Button className="bg-gradient-primary hover:opacity-90 text-white backdrop-blur-lg">
+                    Daftar
+                  </Button>
+                </NavLink>
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">
+                  Selamat datang, {isAdmin ? 'Admin' : 'User'}!
+                </span>
+                <Button 
+                  variant="outline" 
+                  onClick={handleLogout}
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Keluar
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -81,7 +134,7 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100">
             <nav className="flex flex-col space-y-4">
-              {navItems.map((item) => (
+              {getNavItems().map((item) => (
                 <NavLink
                   key={item.name}
                   to={item.path}
@@ -98,23 +151,37 @@ const Header = () => {
                 </NavLink>
               ))}
               <div className="flex flex-col space-y-2 pt-4">
-                <NavLink to="/admin" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full text-purple-600 hover:bg-purple-50">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Admin
+                {!isLoggedIn ? (
+                  <>
+                    <NavLink to="/login" onClick={() => setIsMenuOpen(false)}>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full text-zanjabila-blue-600 hover:bg-zanjabila-blue-50"
+                        onClick={handleLogin}
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        Masuk
+                      </Button>
+                    </NavLink>
+                    <NavLink to="/daftar" onClick={() => setIsMenuOpen(false)}>
+                      <Button className="w-full bg-gradient-primary hover:opacity-90 text-white">
+                        Daftar
+                      </Button>
+                    </NavLink>
+                  </>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Keluar
                   </Button>
-                </NavLink>
-                <NavLink to="/login" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full text-zanjabila-blue-600 hover:bg-zanjabila-blue-50">
-                    <User className="w-4 h-4 mr-2" />
-                    Masuk
-                  </Button>
-                </NavLink>
-                <NavLink to="/daftar" onClick={() => setIsMenuOpen(false)}>
-                  <Button className="w-full bg-gradient-primary hover:opacity-90 text-white">
-                    Daftar
-                  </Button>
-                </NavLink>
+                )}
               </div>
             </nav>
           </div>
