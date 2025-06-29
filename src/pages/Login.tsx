@@ -1,20 +1,33 @@
-
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login attempt:', { email, password });
+    setLoading(true);
+
+    try {
+      await signIn(email, password);
+      toast.success('Berhasil masuk!');
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal masuk. Periksa email dan password Anda.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,6 +64,7 @@ const Login = () => {
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-zanjabila-blue-500"
                       placeholder="masukkan@email.com"
                       required
+                      disabled={loading}
                     />
                   </div>
                   
@@ -66,6 +80,7 @@ const Login = () => {
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-zanjabila-blue-500"
                       placeholder="Masukkan password"
                       required
+                      disabled={loading}
                     />
                   </div>
                   
@@ -82,8 +97,9 @@ const Login = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-primary hover:opacity-90 text-white py-3 text-lg"
+                    disabled={loading}
                   >
-                    Masuk
+                    {loading ? 'Memproses...' : 'Masuk'}
                   </Button>
                 </form>
                 
@@ -97,28 +113,6 @@ const Login = () => {
                       Daftar sekarang
                     </NavLink>
                   </p>
-                </div>
-                
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <p className="text-center text-sm text-gray-500 mb-4">
-                    Atau masuk dengan
-                  </p>
-                  <div className="space-y-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-gray-300 hover:bg-gray-50"
-                    >
-                      <span className="mr-2">🔵</span>
-                      Masuk dengan Google
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-gray-300 hover:bg-gray-50"
-                    >
-                      <span className="mr-2">📘</span>
-                      Masuk dengan Facebook
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>

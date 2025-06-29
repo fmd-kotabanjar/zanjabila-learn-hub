@@ -1,13 +1,14 @@
-
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Menu, User, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Simulasi login state
-  const [isAdmin, setIsAdmin] = useState(false); // Simulasi admin state
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const publicNavItems = [
     { name: 'Home', path: '/' },
@@ -37,20 +38,20 @@ const Header = () => {
   ];
 
   const getNavItems = () => {
-    if (isAdmin) return adminNavItems;
-    if (isLoggedIn) return userNavItems;
+    if (profile?.role === 'admin') return adminNavItems;
+    if (user) return userNavItems;
     return publicNavItems;
   };
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    // Simulasi: set admin berdasarkan email atau role
-    // setIsAdmin(true); // Uncomment untuk testing admin
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setIsAdmin(false);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('Berhasil logout');
+      navigate('/');
+    } catch (error) {
+      toast.error('Gagal logout');
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -86,13 +87,12 @@ const Header = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {!isLoggedIn ? (
+            {!user ? (
               <>
                 <NavLink to="/login">
                   <Button 
                     variant="ghost" 
                     className="text-zanjabila-blue-600 hover:bg-zanjabila-blue-50"
-                    onClick={handleLogin}
                   >
                     <User className="w-4 h-4 mr-2" />
                     Masuk
@@ -107,8 +107,13 @@ const Header = () => {
             ) : (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600">
-                  Selamat datang, {isAdmin ? 'Admin' : 'User'}!
+                  Selamat datang, {profile?.full_name || user.email}!
                 </span>
+                {profile?.role === 'admin' && (
+                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                    Admin
+                  </span>
+                )}
                 <Button 
                   variant="outline" 
                   onClick={handleLogout}
@@ -151,13 +156,12 @@ const Header = () => {
                 </NavLink>
               ))}
               <div className="flex flex-col space-y-2 pt-4">
-                {!isLoggedIn ? (
+                {!user ? (
                   <>
                     <NavLink to="/login" onClick={() => setIsMenuOpen(false)}>
                       <Button 
                         variant="ghost" 
                         className="w-full text-zanjabila-blue-600 hover:bg-zanjabila-blue-50"
-                        onClick={handleLogin}
                       >
                         <User className="w-4 h-4 mr-2" />
                         Masuk

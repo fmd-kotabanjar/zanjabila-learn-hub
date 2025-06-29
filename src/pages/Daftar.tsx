@@ -1,11 +1,12 @@
-
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const Daftar = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,9 @@ const Daftar = () => {
     password: '',
     confirmPassword: ''
   });
+  const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -22,10 +26,30 @@ const Daftar = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
-    console.log('Registration attempt:', formData);
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Password dan konfirmasi password tidak sama');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password minimal 6 karakter');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await signUp(formData.email, formData.password, formData.fullName);
+      toast.success('Akun berhasil dibuat! Silakan login.');
+      navigate('/login');
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal membuat akun. Silakan coba lagi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,6 +87,7 @@ const Daftar = () => {
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-zanjabila-orange-500"
                       placeholder="Masukkan nama lengkap"
                       required
+                      disabled={loading}
                     />
                   </div>
                   
@@ -79,6 +104,7 @@ const Daftar = () => {
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-zanjabila-orange-500"
                       placeholder="masukkan@email.com"
                       required
+                      disabled={loading}
                     />
                   </div>
                   
@@ -93,8 +119,10 @@ const Daftar = () => {
                       value={formData.password}
                       onChange={handleChange}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-zanjabila-orange-500"
-                      placeholder="Masukkan password"
+                      placeholder="Masukkan password (min. 6 karakter)"
                       required
+                      disabled={loading}
+                      minLength={6}
                     />
                   </div>
                   
@@ -111,6 +139,7 @@ const Daftar = () => {
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-zanjabila-orange-500"
                       placeholder="Konfirmasi password"
                       required
+                      disabled={loading}
                     />
                   </div>
                   
@@ -119,6 +148,7 @@ const Daftar = () => {
                       type="checkbox" 
                       className="w-4 h-4 text-zanjabila-orange-600 rounded mt-1" 
                       required 
+                      disabled={loading}
                     />
                     <span className="ml-2 text-sm text-gray-600">
                       Saya setuju dengan{' '}
@@ -135,8 +165,9 @@ const Daftar = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-secondary hover:opacity-90 text-white py-3 text-lg"
+                    disabled={loading}
                   >
-                    Daftar Sekarang
+                    {loading ? 'Memproses...' : 'Daftar Sekarang'}
                   </Button>
                 </form>
                 
@@ -150,28 +181,6 @@ const Daftar = () => {
                       Masuk di sini
                     </NavLink>
                   </p>
-                </div>
-                
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <p className="text-center text-sm text-gray-500 mb-4">
-                    Atau daftar dengan
-                  </p>
-                  <div className="space-y-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-gray-300 hover:bg-gray-50"
-                    >
-                      <span className="mr-2">🔵</span>
-                      Daftar dengan Google
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-gray-300 hover:bg-gray-50"
-                    >
-                      <span className="mr-2">📘</span>
-                      Daftar dengan Facebook
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>
