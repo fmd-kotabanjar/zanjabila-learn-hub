@@ -3,11 +3,17 @@ import type { User } from '@supabase/supabase-js';
 
 export interface UserProfile {
   id: string;
-  full_name: string | null;
+  user_id: string | null;
+  full_name: string;
+  role_name: 'teacher' | 'admin' | 'media' | 'treasurer' | 'hr' | 'infrastructure' | null;
+  employee_id: string | null;
+  department: string | null;
+  position: string | null;
+  phone: string | null;
   avatar_url: string | null;
-  role: 'user' | 'admin';
-  created_at: string;
-  updated_at: string;
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface AuthState {
@@ -59,9 +65,9 @@ export const getCurrentUser = async () => {
 // Get user profile
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('user_profiles')
     .select('*')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single();
 
   if (error) {
@@ -75,9 +81,9 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 // Update user profile
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>) => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('user_profiles')
     .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', userId)
+    .eq('user_id', userId)
     .select()
     .single();
 
@@ -106,5 +112,43 @@ export const updatePassword = async (newPassword: string) => {
 // Check if user is admin
 export const isAdmin = async (userId: string): Promise<boolean> => {
   const profile = await getUserProfile(userId);
-  return profile?.role === 'admin';
+  return profile?.role_name === 'admin';
+};
+
+// Use access code to assign role
+export const useAccessCode = async (userId: string, code: string): Promise<boolean> => {
+  try {
+    // Validate access code
+    const { data: accessCode, error: codeError } = await supabase
+      .from('access_codes')
+      .select('*')
+      .eq('code', code.toUpperCase())
+      .eq('is_active', true)
+      .single();
+
+    if (codeError || !accessCode) {
+      throw new Error('Invalid or inactive access code');
+    }
+
+    // Check if code has expired
+    if (accessCode.expires_at && new Date(accessCode.expires_at) < new Date()) {
+      throw new Error('Access code has expired');
+    }
+
+    // Update user profile with role
+    const { error: updateError } = await supabase
+      .from('user_profiles')
+      .update({ 
+        role_name: accessCode.role_name,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    if (updateError) throw updateError;
+
+    return true;
+  } catch (error) {
+    console.error('Error using access code:', error);
+    throw error;
+  }
 };

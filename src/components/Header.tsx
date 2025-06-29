@@ -38,7 +38,7 @@ const Header = () => {
   ];
 
   const getNavItems = () => {
-    if (profile?.role === 'admin') return adminNavItems;
+    if (profile?.role_name === 'admin') return adminNavItems;
     if (user) return userNavItems;
     return publicNavItems;
   };
@@ -109,9 +109,9 @@ const Header = () => {
                 <span className="text-sm text-gray-600">
                   Selamat datang, {profile?.full_name || user.email}!
                 </span>
-                {profile?.role === 'admin' && (
-                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                    Admin
+                {profile?.role_name && (
+                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full capitalize">
+                    {profile.role_name}
                   </span>
                 )}
                 <Button 

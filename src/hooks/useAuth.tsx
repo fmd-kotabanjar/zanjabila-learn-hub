@@ -1,13 +1,14 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { getUserProfile, type UserProfile, type AuthState } from '@/lib/auth';
+import { getUserProfile, useAccessCode as useAccessCodeLib, type UserProfile, type AuthState } from '@/lib/auth';
 
 interface AuthContextType extends AuthState {
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  useAccessCode: (code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -127,9 +128,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('user_profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -137,6 +138,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setProfile(data);
     } catch (error) {
       console.error('Update profile error:', error);
+      throw error;
+    }
+  };
+
+  const useAccessCode = async (code: string) => {
+    if (!user) throw new Error('No user logged in');
+    
+    try {
+      await useAccessCodeLib(user.id, code);
+      
+      // Refresh profile to get updated role
+      const updatedProfile = await getUserProfile(user.id);
+      setProfile(updatedProfile);
+    } catch (error) {
+      console.error('Use access code error:', error);
       throw error;
     }
   };
@@ -149,6 +165,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signIn,
     signOut,
     updateProfile,
+    useAccessCode,
   };
 
   return (

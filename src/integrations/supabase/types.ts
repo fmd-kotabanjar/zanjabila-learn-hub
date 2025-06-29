@@ -11,40 +11,34 @@ export type Database = {
     Tables: {
       access_codes: {
         Row: {
-          code: string
-          created_at: string | null
-          created_by: string | null
-          current_uses: number
-          expires_at: string | null
           id: string
-          is_active: boolean
-          max_uses: number
-          program_id: string | null
-          program_type: string
+          code: string
+          role_name: string
+          is_active: boolean | null
+          expires_at: string | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
-          code: string
-          created_at?: string | null
-          created_by?: string | null
-          current_uses?: number
-          expires_at?: string | null
           id?: string
-          is_active?: boolean
-          max_uses?: number
-          program_id?: string | null
-          program_type: string
+          code: string
+          role_name: string
+          is_active?: boolean | null
+          expires_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
-          code?: string
-          created_at?: string | null
-          created_by?: string | null
-          current_uses?: number
-          expires_at?: string | null
           id?: string
-          is_active?: boolean
-          max_uses?: number
-          program_id?: string | null
-          program_type?: string
+          code?: string
+          role_name?: string
+          is_active?: boolean | null
+          expires_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -53,209 +47,60 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
-      profiles: {
+      user_profiles: {
         Row: {
-          avatar_url: string | null
-          created_at: string | null
-          full_name: string | null
           id: string
-          role: string | null
+          user_id: string | null
+          full_name: string
+          role_name: string | null
+          employee_id: string | null
+          department: string | null
+          position: string | null
+          phone: string | null
+          avatar_url: string | null
+          is_active: boolean | null
+          created_at: string | null
           updated_at: string | null
         }
         Insert: {
+          id?: string
+          user_id?: string | null
+          full_name: string
+          role_name?: string | null
+          employee_id?: string | null
+          department?: string | null
+          position?: string | null
+          phone?: string | null
           avatar_url?: string | null
+          is_active?: boolean | null
           created_at?: string | null
-          full_name?: string | null
-          id: string
-          role?: string | null
           updated_at?: string | null
         }
         Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          full_name?: string | null
           id?: string
-          role?: string | null
+          user_id?: string | null
+          full_name?: string
+          role_name?: string | null
+          employee_id?: string | null
+          department?: string | null
+          position?: string | null
+          phone?: string | null
+          avatar_url?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      purchase_history: {
-        Row: {
-          amount: number | null
-          currency: string | null
-          id: string
-          item_id: string
-          item_title: string
-          item_type: string
-          payment_method: string | null
-          purchased_at: string | null
-          status: string | null
-          transaction_id: string | null
-          user_id: string
-        }
-        Insert: {
-          amount?: number | null
-          currency?: string | null
-          id?: string
-          item_id: string
-          item_title: string
-          item_type: string
-          payment_method?: string | null
-          purchased_at?: string | null
-          status?: string | null
-          transaction_id?: string | null
-          user_id: string
-        }
-        Update: {
-          amount?: number | null
-          currency?: string | null
-          id?: string
-          item_id?: string
-          item_title?: string
-          item_type?: string
-          payment_method?: string | null
-          purchased_at?: string | null
-          status?: string | null
-          transaction_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "purchase_history_user_id_fkey"
+            foreignKeyName: "user_profiles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      saved_content: {
-        Row: {
-          content_id: string
-          content_title: string
-          content_type: string
-          id: string
-          saved_at: string | null
-          user_id: string
-        }
-        Insert: {
-          content_id: string
-          content_title: string
-          content_type: string
-          id?: string
-          saved_at?: string | null
-          user_id: string
-        }
-        Update: {
-          content_id?: string
-          content_title?: string
-          content_type?: string
-          id?: string
-          saved_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "saved_content_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_programs: {
-        Row: {
-          access_code_used: string | null
-          completed_at: string | null
-          enrolled_at: string | null
-          id: string
-          program_id: string
-          program_title: string
-          progress: number
-          user_id: string
-        }
-        Insert: {
-          access_code_used?: string | null
-          completed_at?: string | null
-          enrolled_at?: string | null
-          id?: string
-          program_id: string
-          program_title: string
-          progress?: number
-          user_id: string
-        }
-        Update: {
-          access_code_used?: string | null
-          completed_at?: string | null
-          enrolled_at?: string | null
-          id?: string
-          program_id?: string
-          program_title?: string
-          progress?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_programs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_progress: {
-        Row: {
-          completed: boolean
-          completed_at: string | null
-          created_at: string | null
-          id: string
-          lesson_id: string
-          program_id: string
-          time_spent: number
-          user_id: string
-        }
-        Insert: {
-          completed?: boolean
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          lesson_id: string
-          program_id: string
-          time_spent?: number
-          user_id: string
-        }
-        Update: {
-          completed?: boolean
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          lesson_id?: string
-          program_id?: string
-          time_spent?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_progress_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
+          }
         ]
       }
     }
@@ -354,6 +199,21 @@ export type Enums<
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
     ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof PublicSchema["CompositeTypes"]
+    | { schema: keyof Database },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
+    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {

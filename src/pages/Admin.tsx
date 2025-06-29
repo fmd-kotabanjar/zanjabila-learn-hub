@@ -12,38 +12,33 @@ import { toast } from 'sonner';
 interface AccessCode {
   id: string;
   code: string;
-  program_type: string;
-  program_id: string | null;
+  role_name: string;
   is_active: boolean;
-  max_uses: number;
-  current_uses: number;
   expires_at: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 interface UserProfile {
   id: string;
-  full_name: string | null;
-  role: string | null;
-  created_at: string;
+  user_id: string | null;
+  full_name: string;
+  role_name: string | null;
+  employee_id: string | null;
+  department: string | null;
+  position: string | null;
+  phone: string | null;
+  is_active: boolean | null;
+  created_at: string | null;
 }
 
 const Admin = () => {
   const { user, profile } = useAuth();
-  const [purchaseLinks, setPurchaseLinks] = useState({
-    akademiTumbuhKita: 'https://checkout.example.com/akademi-tumbuh-kita',
-    zaad: 'https://checkout.example.com/zaad',
-    kolaborasi: 'https://checkout.example.com/kolaborasi',
-    ebook: 'https://checkout.example.com/ebook',
-    artikel: 'https://checkout.example.com/artikel'
-  });
-
   const [accessCodes, setAccessCodes] = useState<AccessCode[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && profile?.role === 'admin') {
+    if (user && profile?.role_name === 'admin') {
       loadAdminData();
     }
   }, [user, profile]);
@@ -62,8 +57,8 @@ const Admin = () => {
 
       // Load users
       const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('id, full_name, role, created_at')
+        .from('user_profiles')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (usersError) throw usersError;
@@ -75,10 +70,6 @@ const Admin = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const updatePurchaseLink = (key: keyof typeof purchaseLinks, value: string) => {
-    setPurchaseLinks(prev => ({ ...prev, [key]: value }));
   };
 
   const toggleAccessCode = async (codeId: string, currentStatus: boolean) => {
@@ -107,19 +98,22 @@ const Admin = () => {
 
   const createAccessCode = async () => {
     const code = prompt('Masukkan kode akses baru:');
-    const programType = prompt('Masukkan tipe program (program/ebook/article):');
-    const programId = prompt('Masukkan ID program:');
+    const roleName = prompt('Masukkan role (teacher/admin/media/treasurer/hr/infrastructure):');
     
-    if (!code || !programType || !programId) return;
+    if (!code || !roleName) return;
+
+    const validRoles = ['teacher', 'admin', 'media', 'treasurer', 'hr', 'infrastructure'];
+    if (!validRoles.includes(roleName.toLowerCase())) {
+      toast.error('Role tidak valid. Gunakan: teacher, admin, media, treasurer, hr, atau infrastructure');
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('access_codes')
         .insert({
           code: code.toUpperCase(),
-          program_type: programType,
-          program_id: programId,
-          max_uses: 1000,
+          role_name: roleName.toLowerCase(),
           created_by: user?.id
         });
 
@@ -133,7 +127,8 @@ const Admin = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Tidak diketahui';
     return new Date(dateString).toLocaleDateString('id-ID', {
       year: 'numeric',
       month: 'long',
@@ -141,7 +136,7 @@ const Admin = () => {
     });
   };
 
-  if (profile?.role !== 'admin') {
+  if (profile?.role_name !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -163,7 +158,7 @@ const Admin = () => {
               <Settings className="w-8 h-8 text-blue-600" />
               Dashboard Admin
             </h1>
-            <p className="text-gray-600">Kelola platform pembelajaran Zanjabila Learn</p>
+            <p className="text-gray-600">Kelola sistem dan pengguna</p>
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
@@ -171,7 +166,6 @@ const Admin = () => {
               <TabsTrigger value="overview" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Overview</TabsTrigger>
               <TabsTrigger value="codes" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Kode Akses</TabsTrigger>
               <TabsTrigger value="users" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Pengguna</TabsTrigger>
-              <TabsTrigger value="purchase" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Link Pembelian</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -206,12 +200,12 @@ const Admin = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Total Penggunaan</p>
-                        <p className="text-3xl font-bold text-orange-600">
-                          {accessCodes.reduce((sum, code) => sum + code.current_uses, 0)}
+                        <p className="text-sm font-medium text-gray-600">Admin</p>
+                        <p className="text-3xl font-bold text-purple-600">
+                          {users.filter(user => user.role_name === 'admin').length}
                         </p>
                       </div>
-                      <BookOpen className="w-8 h-8 text-orange-600" />
+                      <Settings className="w-8 h-8 text-purple-600" />
                     </div>
                   </CardContent>
                 </Card>
@@ -220,12 +214,12 @@ const Admin = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Admin</p>
-                        <p className="text-3xl font-bold text-purple-600">
-                          {users.filter(user => user.role === 'admin').length}
+                        <p className="text-sm font-medium text-gray-600">Teacher</p>
+                        <p className="text-3xl font-bold text-orange-600">
+                          {users.filter(user => user.role_name === 'teacher').length}
                         </p>
                       </div>
-                      <Settings className="w-8 h-8 text-purple-600" />
+                      <BookOpen className="w-8 h-8 text-orange-600" />
                     </div>
                   </CardContent>
                 </Card>
@@ -237,7 +231,7 @@ const Admin = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle>Manajemen Kode Akses</CardTitle>
-                    <p className="text-gray-600">Kelola kode akses untuk program berbayar</p>
+                    <p className="text-gray-600">Kelola kode akses untuk role sistem</p>
                   </div>
                   <Button onClick={createAccessCode} className="bg-gradient-secondary">
                     <Plus className="w-4 h-4 mr-2" />
@@ -255,9 +249,9 @@ const Admin = () => {
                         <thead>
                           <tr className="border-b border-white/20">
                             <th className="text-left py-3 px-4">Kode</th>
-                            <th className="text-left py-3 px-4">Program</th>
-                            <th className="text-left py-3 px-4">Penggunaan</th>
+                            <th className="text-left py-3 px-4">Role</th>
                             <th className="text-left py-3 px-4">Status</th>
+                            <th className="text-left py-3 px-4">Dibuat</th>
                             <th className="text-left py-3 px-4">Aksi</th>
                           </tr>
                         </thead>
@@ -265,16 +259,16 @@ const Admin = () => {
                           {accessCodes.map((code) => (
                             <tr key={code.id} className="border-b border-white/10">
                               <td className="py-3 px-4 font-mono font-bold">{code.code}</td>
-                              <td className="py-3 px-4">{code.program_type}</td>
-                              <td className="py-3 px-4">
-                                {code.current_uses} / {code.max_uses}
-                              </td>
+                              <td className="py-3 px-4 capitalize">{code.role_name}</td>
                               <td className="py-3 px-4">
                                 <span className={`px-2 py-1 rounded-full text-xs ${
                                   code.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                 }`}>
                                   {code.is_active ? 'Aktif' : 'Nonaktif'}
                                 </span>
+                              </td>
+                              <td className="py-3 px-4 text-sm">
+                                {formatDate(code.created_at)}
                               </td>
                               <td className="py-3 px-4">
                                 <div className="flex gap-2">
@@ -301,7 +295,7 @@ const Admin = () => {
               <Card className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
                 <CardHeader>
                   <CardTitle>Manajemen Pengguna</CardTitle>
-                  <p className="text-gray-600">Kelola data pengguna platform</p>
+                  <p className="text-gray-600">Kelola data pengguna sistem</p>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
@@ -315,6 +309,9 @@ const Admin = () => {
                           <tr className="border-b border-white/20">
                             <th className="text-left py-3 px-4">Nama</th>
                             <th className="text-left py-3 px-4">Role</th>
+                            <th className="text-left py-3 px-4">Employee ID</th>
+                            <th className="text-left py-3 px-4">Department</th>
+                            <th className="text-left py-3 px-4">Status</th>
                             <th className="text-left py-3 px-4">Bergabung</th>
                           </tr>
                         </thead>
@@ -325,12 +322,27 @@ const Admin = () => {
                                 {user.full_name || 'Tidak ada nama'}
                               </td>
                               <td className="py-3 px-4">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  user.role === 'admin' 
+                                <span className={`px-2 py-1 rounded-full text-xs capitalize ${
+                                  user.role_name === 'admin' 
                                     ? 'bg-purple-100 text-purple-800' 
-                                    : 'bg-blue-100 text-blue-800'
+                                    : user.role_name === 'teacher'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : user.role_name
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {user.role || 'user'}
+                                  {user.role_name || 'no role'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">{user.employee_id || '-'}</td>
+                              <td className="py-3 px-4">{user.department || '-'}</td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  user.is_active 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {user.is_active ? 'Aktif' : 'Tidak Aktif'}
                                 </span>
                               </td>
                               <td className="py-3 px-4">{formatDate(user.created_at)}</td>
@@ -340,34 +352,6 @@ const Admin = () => {
                       </table>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="purchase">
-              <Card className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
-                <CardHeader>
-                  <CardTitle>Pengaturan Link Pembelian</CardTitle>
-                  <p className="text-gray-600">Atur link redirect untuk setiap jenis pembelian</p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {Object.entries(purchaseLinks).map(([key, value]) => (
-                    <div key={key} className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </label>
-                      <input
-                        type="url"
-                        value={value}
-                        onChange={(e) => updatePurchaseLink(key as keyof typeof purchaseLinks, e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg backdrop-blur-lg bg-white/30 border border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="https://checkout.example.com/"
-                      />
-                    </div>
-                  ))}
-                  <Button className="bg-gradient-primary">
-                    Simpan Perubahan
-                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
