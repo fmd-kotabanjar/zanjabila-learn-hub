@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,47 +6,104 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { User, BookOpen, Award, History, Heart, Play, Download, Lock } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { 
+  getUserPrograms, 
+  getPurchaseHistory, 
+  getSavedContent, 
+  useAccessCode,
+  type UserProgram,
+  type PurchaseHistory,
+  type SavedContent
+} from '@/lib/programs';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
+  const { user, profile } = useAuth();
   const [accessCode, setAccessCode] = useState('');
-  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
-  const [selectedContent, setSelectedContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [userPrograms, setUserPrograms] = useState<UserProgram[]>([]);
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
+  const [savedContent, setSavedContent] = useState<SavedContent[]>([]);
 
-  const userProgress = [
-    { program: 'Akademi Tumbuh Kita', progress: 75, totalVideos: 20, completedVideos: 15 },
-    { program: 'ZAAD', progress: 40, totalVideos: 25, completedVideos: 10 }
-  ];
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    }
+  }, [user]);
 
-  const purchaseHistory = [
-    { id: 1, item: 'Akademi Tumbuh Kita', date: '2024-01-15', amount: 'Rp 299.000', status: 'Aktif' },
-    { id: 2, item: 'E-book Parenting Modern', date: '2024-02-10', amount: 'Rp 49.000', status: 'Selesai' }
-  ];
-
-  const savedVideos = [
-    { id: 1, title: 'Memahami Emosi Anak', program: 'Akademi Tumbuh Kita', duration: '15 menit' },
-    { id: 2, title: 'Digital Marketing Basics', program: 'ZAAD', duration: '20 menit' }
-  ];
-
-  const certificates = [
-    { id: 1, program: 'Akademi Tumbuh Kita', completionDate: '2024-03-15', status: 'Tersedia' }
-  ];
-
-  const handleAccessCode = () => {
-    // Simulasi validasi kode akses
-    const validCodes = ['AKTKITA2024', 'ZAAD2024', 'KOLABORASI24', 'EBOOK2024'];
-    if (validCodes.includes(accessCode.toUpperCase())) {
-      alert(`Selamat! Kode akses ${accessCode} berhasil diaktifkan. Anda sekarang memiliki akses ke konten premium.`);
-      setAccessCode('');
-      setIsCodeModalOpen(false);
-    } else {
-      alert('Kode akses tidak valid. Silakan periksa kembali kode Anda.');
+  const loadUserData = async () => {
+    if (!user) return;
+    
+    try {
+      const [programs, purchases, saved] = await Promise.all([
+        getUserPrograms(user.id),
+        getPurchaseHistory(user.id),
+        getSavedContent(user.id)
+      ]);
+      
+      setUserPrograms(programs);
+      setPurchaseHistory(purchases);
+      setSavedContent(saved);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast.error('Gagal memuat data pengguna');
     }
   };
 
-  const openAccessModal = (contentType: string) => {
-    setSelectedContent(contentType);
-    setIsCodeModalOpen(true);
+  const handleAccessCode = async () => {
+    if (!user || !accessCode.trim()) return;
+    
+    setLoading(true);
+    try {
+      // Map access codes to program info
+      const programMap: { [key: string]: { id: string; title: string } } = {
+        'AKTKITA2024': { id: 'akademi-tumbuh-kita', title: 'Akademi Tumbuh Kita' },
+        'ZAAD2024': { id: 'zaad', title: 'ZAAD - Zanjabila Arruhama Akademi Digital' },
+        'KOLABORASI24': { id: 'kolaborasi', title: 'Program Kolaborasi Institusi' },
+        'EBOOK2024': { id: 'premium-ebooks', title: 'E-book Premium' },
+        'ARTIKEL2024': { id: 'premium-articles', title: 'Artikel Premium' }
+      };
+
+      const programInfo = programMap[accessCode.toUpperCase()];
+      if (!programInfo) {
+        toast.error('Kode akses tidak valid');
+        return;
+      }
+
+      await useAccessCode(user.id, accessCode, programInfo.id, programInfo.title);
+      toast.success(`Selamat! Kode akses berhasil diaktifkan untuk ${programInfo.title}`);
+      setAccessCode('');
+      
+      // Reload user programs
+      const updatedPrograms = await getUserPrograms(user.id);
+      setUserPrograms(updatedPrograms);
+    } catch (error: any) {
+      toast.error(error.message || 'Kode akses tidak valid atau sudah digunakan');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  if (!user) {
+    return null; // This should be handled by ProtectedRoute
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -60,47 +116,65 @@ const Dashboard = () => {
               <User className="w-8 h-8 text-blue-600" />
               Dashboard Pengguna
             </h1>
-            <p className="text-gray-600">Selamat datang kembali! Lanjutkan perjalanan belajar Anda.</p>
+            <p className="text-gray-600">
+              Selamat datang kembali, {profile?.full_name || user.email}! Lanjutkan perjalanan belajar Anda.
+            </p>
           </div>
 
           <Tabs defaultValue="progress" className="space-y-6">
             <TabsList className="backdrop-blur-lg bg-white/20 border border-white/30 p-1 rounded-2xl">
               <TabsTrigger value="progress" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Progress Belajar</TabsTrigger>
               <TabsTrigger value="history" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Riwayat Pembelian</TabsTrigger>
-              <TabsTrigger value="saved" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Video Tersimpan</TabsTrigger>
-              <TabsTrigger value="certificates" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Sertifikat</TabsTrigger>
+              <TabsTrigger value="saved" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Konten Tersimpan</TabsTrigger>
               <TabsTrigger value="access" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-lg rounded-xl">Kode Akses</TabsTrigger>
             </TabsList>
 
             <TabsContent value="progress">
               <div className="grid gap-6">
-                {userProgress.map((item, index) => (
-                  <Card key={index} className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <BookOpen className="w-5 h-5 text-blue-600" />
-                          {item.program}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          {item.completedVideos}/{item.totalVideos} video
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Progress value={item.progress} className="mb-4" />
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">
-                          Progress: {item.progress}%
-                        </span>
-                        <Button className="bg-gradient-primary">
-                          <Play className="w-4 h-4 mr-2" />
-                          Lanjutkan Belajar
-                        </Button>
-                      </div>
+                {userPrograms.length === 0 ? (
+                  <Card className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
+                    <CardContent className="p-8 text-center">
+                      <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                        Belum Ada Program
+                      </h3>
+                      <p className="text-gray-600 mb-4">
+                        Anda belum terdaftar di program apapun. Mulai belajar sekarang!
+                      </p>
+                      <Button className="bg-gradient-primary">
+                        Jelajahi Program
+                      </Button>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  userPrograms.map((program) => (
+                    <Card key={program.id} className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 text-blue-600" />
+                            {program.program_title}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            Progress: {program.progress}%
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Progress value={program.progress} className="mb-4" />
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Terdaftar: {formatDate(program.enrolled_at || '')}
+                          </span>
+                          <Button className="bg-gradient-primary">
+                            <Play className="w-4 h-4 mr-2" />
+                            Lanjutkan Belajar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </TabsContent>
 
@@ -113,78 +187,86 @@ const Dashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-white/20">
-                          <th className="text-left py-3 px-4">Item</th>
-                          <th className="text-left py-3 px-4">Tanggal</th>
-                          <th className="text-left py-3 px-4">Harga</th>
-                          <th className="text-left py-3 px-4">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {purchaseHistory.map((item) => (
-                          <tr key={item.id} className="border-b border-white/10">
-                            <td className="py-3 px-4 font-medium">{item.item}</td>
-                            <td className="py-3 px-4">{item.date}</td>
-                            <td className="py-3 px-4 font-bold text-green-600">{item.amount}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                item.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                              }`}>
-                                {item.status}
-                              </span>
-                            </td>
+                  {purchaseHistory.length === 0 ? (
+                    <div className="text-center py-8">
+                      <History className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">Belum ada riwayat pembelian</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/20">
+                            <th className="text-left py-3 px-4">Item</th>
+                            <th className="text-left py-3 px-4">Tanggal</th>
+                            <th className="text-left py-3 px-4">Harga</th>
+                            <th className="text-left py-3 px-4">Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {purchaseHistory.map((item) => (
+                            <tr key={item.id} className="border-b border-white/10">
+                              <td className="py-3 px-4 font-medium">{item.item_title}</td>
+                              <td className="py-3 px-4">{formatDate(item.purchased_at || '')}</td>
+                              <td className="py-3 px-4 font-bold text-green-600">
+                                {formatCurrency(item.amount || 0)}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  item.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                                  item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {item.status === 'completed' ? 'Selesai' :
+                                   item.status === 'pending' ? 'Pending' : 'Gagal'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="saved">
               <div className="grid md:grid-cols-2 gap-6">
-                {savedVideos.map((video) => (
-                  <Card key={video.id} className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="font-semibold text-gray-900 mb-2">{video.title}</h3>
-                          <p className="text-sm text-gray-600">{video.program}</p>
-                          <p className="text-sm text-gray-500">Durasi: {video.duration}</p>
-                        </div>
-                        <Heart className="w-5 h-5 text-red-500 fill-current" />
-                      </div>
-                      <Button className="w-full bg-gradient-primary">
-                        <Play className="w-4 h-4 mr-2" />
-                        Tonton Video
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="certificates">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {certificates.map((cert) => (
-                  <Card key={cert.id} className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
-                    <CardContent className="p-6 text-center">
-                      <Award className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                      <h3 className="font-semibold text-gray-900 mb-2">{cert.program}</h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Diselesaikan: {cert.completionDate}
+                {savedContent.length === 0 ? (
+                  <Card className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl md:col-span-2">
+                    <CardContent className="p-8 text-center">
+                      <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                        Belum Ada Konten Tersimpan
+                      </h3>
+                      <p className="text-gray-600">
+                        Simpan artikel, e-book, atau video favorit Anda untuk akses mudah
                       </p>
-                      <Button className="w-full bg-gradient-secondary">
-                        <Download className="w-4 h-4 mr-2" />
-                        Unduh Sertifikat
-                      </Button>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  savedContent.map((content) => (
+                    <Card key={content.id} className="backdrop-blur-lg bg-white/20 border border-white/30 shadow-xl">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold text-gray-900 mb-2">{content.content_title}</h3>
+                            <p className="text-sm text-gray-600 capitalize">{content.content_type}</p>
+                            <p className="text-sm text-gray-500">
+                              Disimpan: {formatDate(content.saved_at || '')}
+                            </p>
+                          </div>
+                          <Heart className="w-5 h-5 text-red-500 fill-current" />
+                        </div>
+                        <Button className="w-full bg-gradient-primary">
+                          <Play className="w-4 h-4 mr-2" />
+                          Buka Konten
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </TabsContent>
 
@@ -211,14 +293,15 @@ const Dashboard = () => {
                       className="w-full px-4 py-3 rounded-lg backdrop-blur-lg bg-white/30 border border-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-center text-lg tracking-wider"
                       placeholder="MASUKKAN-KODE-AKSES"
                       maxLength={20}
+                      disabled={loading}
                     />
                   </div>
                   <Button 
                     onClick={handleAccessCode}
                     className="w-full bg-gradient-secondary text-lg py-3"
-                    disabled={!accessCode}
+                    disabled={!accessCode || loading}
                   >
-                    Aktivasi Kode Akses
+                    {loading ? 'Memproses...' : 'Aktivasi Kode Akses'}
                   </Button>
                   
                   <div className="mt-8 p-4 backdrop-blur-lg bg-yellow-50/50 border border-yellow-200/50 rounded-lg">
@@ -229,6 +312,17 @@ const Dashboard = () => {
                       <li>3. Masukkan kode akses di form di atas</li>
                       <li>4. Klik "Aktivasi Kode Akses" untuk mengakses konten</li>
                     </ol>
+                  </div>
+
+                  <div className="mt-6 p-4 backdrop-blur-lg bg-blue-50/50 border border-blue-200/50 rounded-lg">
+                    <h4 className="font-medium text-blue-800 mb-2">Kode Akses yang Tersedia:</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• <code className="font-mono bg-blue-100 px-1 rounded">AKTKITA2024</code> - Akademi Tumbuh Kita</li>
+                      <li>• <code className="font-mono bg-blue-100 px-1 rounded">ZAAD2024</code> - ZAAD Program</li>
+                      <li>• <code className="font-mono bg-blue-100 px-1 rounded">KOLABORASI24</code> - Program Kolaborasi</li>
+                      <li>• <code className="font-mono bg-blue-100 px-1 rounded">EBOOK2024</code> - E-book Premium</li>
+                      <li>• <code className="font-mono bg-blue-100 px-1 rounded">ARTIKEL2024</code> - Artikel Premium</li>
+                    </ul>
                   </div>
                 </CardContent>
               </Card>
