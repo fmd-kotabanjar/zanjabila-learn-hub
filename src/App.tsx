@@ -11,6 +11,8 @@ import Ebook from "./pages/Ebook";
 import Login from "./pages/Login";
 import Daftar from "./pages/Daftar";
 import Bantuan from "./pages/Bantuan";
+import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
