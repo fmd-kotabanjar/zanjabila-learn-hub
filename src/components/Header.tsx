@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, User } from 'lucide-react';
+import { Menu, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
@@ -12,16 +12,17 @@ const Header = () => {
     { name: 'Program', path: '/program' },
     { name: 'Artikel', path: '/artikel' },
     { name: 'E-book', path: '/ebook' },
+    { name: 'Dashboard', path: '/dashboard' },
     { name: 'Bantuan', path: '/bantuan' }
   ];
 
   return (
-    <header className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50">
+    <header className="bg-white/80 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50 shadow-lg">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <NavLink to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center backdrop-blur-lg">
               <span className="text-white font-bold text-sm">Z</span>
             </div>
             <span className="text-xl font-bold text-gray-900">Zanjabila Learn</span>
@@ -48,6 +49,12 @@ const Header = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <NavLink to="/admin">
+              <Button variant="ghost" className="text-purple-600 hover:bg-purple-50">
+                <Settings className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
+            </NavLink>
             <NavLink to="/login">
               <Button variant="ghost" className="text-zanjabila-blue-600 hover:bg-zanjabila-blue-50">
                 <User className="w-4 h-4 mr-2" />
@@ -55,7 +62,7 @@ const Header = () => {
               </Button>
             </NavLink>
             <NavLink to="/daftar">
-              <Button className="bg-gradient-primary hover:opacity-90 text-white">
+              <Button className="bg-gradient-primary hover:opacity-90 text-white backdrop-blur-lg">
                 Daftar
               </Button>
             </NavLink>
@@ -91,6 +98,12 @@ const Header = () => {
                 </NavLink>
               ))}
               <div className="flex flex-col space-y-2 pt-4">
+                <NavLink to="/admin" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full text-purple-600 hover:bg-purple-50">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Admin
+                  </Button>
+                </NavLink>
                 <NavLink to="/login" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="ghost" className="w-full text-zanjabila-blue-600 hover:bg-zanjabila-blue-50">
                     <User className="w-4 h-4 mr-2" />
